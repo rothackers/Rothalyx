@@ -1,0 +1,9 @@
+{
+  "name": "Unsandboxed Fixture Plugin",
+  "version": "1.0.0",
+  "api_version": "1",
+  "description": "Synthetic plugin that should be blocked outside developer mode",
+  "entry": "plugin.py",
+  "sandboxed": false,
+  "hooks": ["on_startup"]
+}

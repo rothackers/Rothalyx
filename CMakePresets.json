@@ -1,0 +1,44 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 26,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "dev",
+      "displayName": "Development",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/dev",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "ZARA_BUILD_CLI": "ON"
+      }
+    },
+    {
+      "name": "asan-fuzz",
+      "displayName": "ASan/UBSan Fuzzing",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/asan-fuzz",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": "OFF",
+        "ZARA_BUILD_CLI": "OFF",
+        "ZARA_BUILD_DESKTOP_QT": "OFF",
+        "ZARA_BUILD_FUZZING": "ON",
+        "ZARA_ENABLE_SANITIZERS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "dev",
+      "configurePreset": "dev"
+    },
+    {
+      "name": "asan-fuzz",
+      "configurePreset": "asan-fuzz"
+    }
+  ]
+}

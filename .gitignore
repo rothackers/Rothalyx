@@ -1,0 +1,62 @@
+# Build trees
+/build/
+/build-*/
+/artifacts/
+/dist/
+/out/
+/pkg/
+/src/
+/CMakeFiles/
+/Testing/
+CMakeCache.txt
+CTestTestfile.cmake
+DartConfiguration.tcl
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+build.ninja
+.ninja_deps
+.ninja_log
+CMakeUserPresets.json
+
+# Python and local tooling
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Databases, logs, and local artifacts
+*.sqlite
+*.db
+*.db-*
+*.log
+*.tmp
+*.bak
+*.orig
+*.swp
+*.swo
+*~
+
+# Coverage, profiling, and sanitizer artifacts
+*.profraw
+*.profdata
+*.gcda
+*.gcno
+*.gcov
+.coverage
+coverage/
+
+# Release packages
+*.pkg.tar.zst
+*.deb
+*.dmg
+*.AppImage
+*.msi
+*.zip
+SHA256SUMS.txt
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -1,0 +1,12 @@
+{
+  "name": "Denied Allowlist Plugin",
+  "version": "1.0.0",
+  "api_version": "1",
+  "description": "Synthetic plugin that requests a forbidden import allowlist entry",
+  "entry": "plugin.py",
+  "sandboxed": true,
+  "timeout_ms": 3000,
+  "allow_imports": ["os"],
+  "allow_env": [],
+  "hooks": ["on_startup"]
+}

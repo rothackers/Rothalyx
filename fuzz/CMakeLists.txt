@@ -1,0 +1,22 @@
+add_executable(
+    zara_loader_corpus_runner
+    loader_corpus_runner.cpp
+)
+target_link_libraries(
+    zara_loader_corpus_runner
+    PRIVATE
+        zara_loader
+        zara_memory
+)
+zara_apply_defaults(zara_loader_corpus_runner)
+
+add_executable(
+    zara_trace_corpus_runner
+    trace_corpus_runner.cpp
+)
+target_link_libraries(
+    zara_trace_corpus_runner
+    PRIVATE
+        zara_security
+)
+zara_apply_defaults(zara_trace_corpus_runner)

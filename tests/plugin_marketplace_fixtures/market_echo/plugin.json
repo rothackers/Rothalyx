@@ -1,0 +1,13 @@
+{
+  "name": "Marketplace Echo",
+  "version": "1.0.0",
+  "api_version": "1",
+  "description": "Synthetic marketplace plugin",
+  "entry": "plugin.py",
+  "capabilities": ["program_index"],
+  "sandboxed": true,
+  "timeout_ms": 3000,
+  "allow_imports": [],
+  "allow_env": ["ZARA_PLUGIN_OUT"],
+  "hooks": ["on_startup", "on_binary_analyzed"]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "Echo Plugin",
+  "version": "1.0.0",
+  "api_version": "1",
+  "description": "Synthetic plugin for hook verification",
+  "entry": "plugin.py",
+  "capabilities": [
+    "program_index",
+    "function_analysis"
+  ],
+  "sandboxed": true,
+  "timeout_ms": 3000,
+  "allow_imports": [],
+  "allow_env": [
+    "ZARA_PLUGIN_OUT"
+  ],
+  "hooks": [
+    "on_startup",
+    "before_binary_analyzed",
+    "on_program_analyzed",
+    "on_function_analyzed",
+    "on_binary_analyzed",
+    "on_ai_insights",
+    "on_security_report"
+  ]
+}

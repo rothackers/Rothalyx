@@ -1,0 +1,14 @@
+{
+  "name": "Blocked Plugin",
+  "version": "1.0.0",
+  "api_version": "1",
+  "description": "Synthetic plugin that should be rejected by the sandbox import guard",
+  "entry": "plugin.py",
+  "sandboxed": true,
+  "timeout_ms": 3000,
+  "allow_imports": [],
+  "allow_env": [],
+  "hooks": [
+    "on_startup"
+  ]
+}

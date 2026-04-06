@@ -1,0 +1,258 @@
+name: Release Build And Publish
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  linux-packages:
+    name: Linux DEB and AppImage
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build pkg-config dpkg-dev \
+            python3 python3-pip \
+            qt6-base-dev qt6-base-dev-tools qt6-tools-dev-tools \
+            libsqlite3-dev libcurl4-openssl-dev libcapstone-dev
+
+      - name: Install Python packaging helper
+        run: python3 -m pip install --user pillow
+
+      - name: Download AppImage tooling
+        run: |
+          mkdir -p "$RUNNER_TEMP/appimage-tools"
+          curl -L -o "$RUNNER_TEMP/appimage-tools/linuxdeploy-x86_64.AppImage" \
+            https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          curl -L -o "$RUNNER_TEMP/appimage-tools/linuxdeploy-plugin-qt-x86_64.AppImage" \
+            https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          curl -L -o "$RUNNER_TEMP/appimage-tools/appimagetool-x86_64.AppImage" \
+            https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+
+      - name: Build DEB
+        run: ./scripts/release/build-linux.sh deb
+
+      - name: Build AppImage
+        env:
+          LINUXDEPLOY: ${{ runner.temp }}/appimage-tools/linuxdeploy-x86_64.AppImage
+          LINUXDEPLOY_PLUGIN_QT: ${{ runner.temp }}/appimage-tools/linuxdeploy-plugin-qt-x86_64.AppImage
+          APPIMAGETOOL: ${{ runner.temp }}/appimage-tools/appimagetool-x86_64.AppImage
+        run: ./scripts/release/build-linux.sh appimage
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: zara-linux-packages
+          path: |
+            artifacts/linux/*.deb
+            artifacts/linux/*.AppImage
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  archlinux-pacman:
+    name: Arch Linux Pacman Package
+    runs-on: ubuntu-24.04
+    container:
+      image: archlinux:latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Arch build dependencies
+        run: pacman -Syu --noconfirm base-devel cmake ninja pkgconf qt6-base sqlite python python-pillow curl capstone
+
+      - name: Build package as non-root user
+        run: |
+          useradd -m builder
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+          su builder -c "cd '$GITHUB_WORKSPACE' && ./scripts/release/build-archlinux.sh"
+
+      - name: Upload Pacman artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: zara-archlinux-packages
+          path: artifacts/archlinux/*
+          if-no-files-found: error
+          retention-days: 14
+
+  macos-dmg:
+    name: macOS DMG
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install build dependencies
+        run: brew install ninja sqlite curl capstone python
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8.3"
+          host: mac
+          target: desktop
+          modules: qt5compat
+
+      - name: Install Python packaging helper
+        run: python3 -m pip install pillow
+
+      - name: Build DMG
+        env:
+          CMAKE_PREFIX_PATH: ${{ env.QT_ROOT_DIR }}
+        run: ./scripts/release/build-macos.sh
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: zara-macos-dmg
+          path: artifacts/macos/*.dmg
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  windows-exe:
+    name: Windows EXE Installer
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python packaging helper
+        run: python -m pip install pillow
+
+      - name: Setup vcpkg
+        shell: pwsh
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git "$env:RUNNER_TEMP\vcpkg"
+          & "$env:RUNNER_TEMP\vcpkg\bootstrap-vcpkg.bat" -disableMetrics
+          & "$env:RUNNER_TEMP\vcpkg\vcpkg.exe" --vcpkg-root "$env:RUNNER_TEMP\vcpkg" install --classic capstone curl sqlite3 --triplet x64-windows
+          "VCPKG_ROOT=$env:RUNNER_TEMP\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8.3"
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          modules: qt5compat
+
+      - name: Install NSIS
+        run: choco install nsis -y
+
+      - name: Build EXE installer
+        env:
+          CMAKE_PREFIX_PATH: ${{ env.QT_ROOT_DIR }}
+          CMAKE_TOOLCHAIN_FILE: ${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake
+        shell: pwsh
+        run: ./scripts/release/build-windows.ps1
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: zara-windows-installer
+          path: artifacts/windows/*
+          if-no-files-found: error
+          retention-days: 14
+
+  publish-release:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs:
+      - linux-packages
+      - archlinux-pacman
+      - macos-dmg
+      - windows-exe
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download packaged artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: zara-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Generate checksum manifest
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find release-assets -maxdepth 1 -type f -printf '%f\n' | sort)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No release assets were downloaded." >&2
+            exit 1
+          fi
+          (
+            cd release-assets
+            sha256sum "${files[@]}" > SHA256SUMS.txt
+          )
+
+      - name: Render release notes
+        run: |
+          python3 scripts/release/render_release_notes.py \
+            --version "${GITHUB_REF_NAME}" \
+            --repository "${GITHUB_REPOSITORY}" \
+            --assets-dir release-assets \
+            --output release-assets/RELEASE_NOTES.md
+
+      - name: Resolve release title
+        id: release_title
+        run: |
+          if [ -f ".github/release-notes/${GITHUB_REF_NAME}.title.txt" ]; then
+            title="$(cat ".github/release-notes/${GITHUB_REF_NAME}.title.txt")"
+          else
+            title="ZARA RE FRAMEWORK ${GITHUB_REF_NAME}"
+          fi
+          echo "title=${title}" >> "$GITHUB_OUTPUT"
+
+      - name: Collect release assets
+        id: release_assets
+        run: |
+          set -euo pipefail
+          {
+            echo "files<<EOF"
+            find release-assets -maxdepth 1 -type f \
+              \( -name '*.exe' -o -name '*.dmg' -o -name '*.AppImage' -o -name '*.deb' -o -name '*.pkg.tar.*' -o -name 'SHA256SUMS.txt' \) \
+              | sort
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Publish release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ steps.release_title.outputs.title }}
+          body_path: release-assets/RELEASE_NOTES.md
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          fail_on_unmatched_files: true
+          files: ${{ steps.release_assets.outputs.files }}

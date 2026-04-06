@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=ZARA RE FRAMEWORK
+GenericName=Reverse Engineering Platform
+Comment=Native reverse engineering workstation for binary analysis, decompilation, and debugging
+Exec=zara_desktop_qt %F
+Icon=zara-re-platform
+Terminal=false
+Categories=Development;Debugger;Utility;
+Keywords=reverse engineering;binary analysis;disassembler;decompiler;debugger;security;
+StartupNotify=true

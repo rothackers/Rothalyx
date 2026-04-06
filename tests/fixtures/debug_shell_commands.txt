@@ -1,0 +1,11 @@
+help
+break entry
+continue
+snapshot
+mem rip 8
+step
+findings
+patterns
+targets
+scaffold /tmp/zara-debug-shell-smoke.py
+quit
